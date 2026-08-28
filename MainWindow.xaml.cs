@@ -378,6 +378,22 @@ namespace FightstickLab
             AssistDiagnosisText.Foreground = (Brush)FindResource("MutedBrush");
             AssistDiagnosisText.Text = BuildDiagnosis(expected, analysis);
 
+            if (recentSuccess)
+            {
+                ResultText.Text = $"✓ 命中 · {_completionTimes.Last()}ms";
+                ResultText.Foreground = (Brush)FindResource("SuccessBrush");
+            }
+            else if (analysis.WrongRecord != null)
+            {
+                ResultText.Text = $"✗ {SegmentLabel(analysis.MissIndex)} 错";
+                ResultText.Foreground = new SolidColorBrush(Color.FromRgb(255, 120, 108));
+            }
+            else
+            {
+                ResultText.Text = "按目标指令开始练习。";
+                ResultText.Foreground = (Brush)FindResource("TextBrush");
+            }
+
             if (analysis.WrongRecord != null && analysis.Matched.Count > 0 && analysis.WrongRecord.Id != _lastFailureRecordId)
             {
                 _lastFailureRecordId = analysis.WrongRecord.Id;
@@ -784,8 +800,7 @@ namespace FightstickLab
 
         private void SetActionVisual(InputAction action, bool active)
         {
-            var idle = (Brush)FindResource("PanelAltBrush");
-            var brush = active ? new SolidColorBrush(Color.FromRgb(58, 63, 64)) : idle;
+            var brush = active ? new SolidColorBrush(Color.FromRgb(58, 63, 64)) : Brushes.Transparent;
             switch (action)
             {
                 case InputAction.LightPunch: LightPunchButton.Background = brush; CompactLP.Background = brush; break;

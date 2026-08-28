@@ -6,11 +6,26 @@
     <SolidColorBrush x:Key="BgBrush" Color="#101213" />
     <SolidColorBrush x:Key="PanelBrush" Color="#181B1C" />
     <SolidColorBrush x:Key="PanelAltBrush" Color="#202425" />
-    <SolidColorBrush x:Key="LineBrush" Color="#303536" />
+    <SolidColorBrush x:Key="LineBrush" Color="#2F3435" />
     <SolidColorBrush x:Key="TextBrush" Color="#F2F4EF" />
-    <SolidColorBrush x:Key="MutedBrush" Color="#939B97" />
-    <SolidColorBrush x:Key="AccentBrush" Color="#EF4E3E" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#98A19B" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#F2553F" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#55D58B" />
+
+    <!-- 卡片表面：极浅的上下渐变，做出轻微"浮起"质感，避免纯平灰卡 -->
+    <LinearGradientBrush x:Key="SurfaceBrush" StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#20262A" Offset="0" />
+      <GradientStop Color="#131617" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="SurfaceRaisedBrush" StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#2A2F33" Offset="0" />
+      <GradientStop Color="#181B1C" Offset="1" />
+    </LinearGradientBrush>
+    <!-- 强调按钮/徽章：同色系渐变 -->
+    <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#FF6A52" Offset="0" />
+      <GradientStop Color="#E63E2B" Offset="1" />
+    </LinearGradientBrush>
 
     <Style TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Microsoft YaHei UI" />

@@ -30,7 +30,7 @@
       </Setter>
     </Style>
   </Window.Resources>
-  <Border BorderBrush="#484E4F" BorderThickness="1" CornerRadius="6" Background="{StaticResource PanelBrush}">
+  <Border BorderBrush="#4A5051" BorderThickness="1" CornerRadius="6" Background="{StaticResource SurfaceBrush}">
     <Grid Margin="20">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
