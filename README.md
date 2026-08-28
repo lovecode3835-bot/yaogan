@@ -25,14 +25,27 @@
 
 ## 环境要求
 
-- **目标机器**：64 位 Windows（Win7 SP1 / Win8 / Win10 / Win11），**无需安装 .NET**（发布包自带运行时）。
-- **开发构建**：需要 .NET 5 SDK（`dotnet`）。
+### 目标环境（运行发布包）
+- **64 位 Windows**：Win7 SP1 / Win8 / Win10 / Win11。
+- **无需安装任何 .NET**：发布包自带 .NET 5 运行库，双击即用。
+
+### 开发环境（从源码构建 / 运行）
+| 项 | 要求 |
+| --- | --- |
+| 操作系统 | Windows 10 / 11（64 位） |
+| 工具链 | **.NET 5 SDK（5.0.4xx 以上）** —— 验证：`dotnet --list-sdks` |
+| IDE（可选） | Visual Studio 2019/2022，安装「.NET 桌面开发」工作负载；或用命令行即可 |
+| 目标框架 | `net5.0-windows`（WPF），无第三方 NuGet 依赖，可离线还原 |
+| 运行时 | 开发机器装了 .NET 5 Desktop Runtime 即可（`dotnet run` 用）；打免安装包会用到本机安装的 5.0.17 运行库文件 |
+
+> 说明：项目使用 `net5.0-windows`（WPF，`UseWPF`）。1）开发跑直接用 `dotnet run`；2）打「免安装」发布包时不依赖 NuGet 联网，而是把本机已装的 .NET 5.0.17 运行库拷进发布目录（见下文「重新打包」）。
 
 ## 运行
 
 **开发调试**（需 .NET 5 SDK）：
 
 ```powershell
+dotnet build FightstickLab.csproj -c Release
 dotnet run --project FightstickLab.csproj -c Release
 ```
 
