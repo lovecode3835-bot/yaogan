@@ -1,0 +1,83 @@
+<Window x:Class="FightstickLab.CommandEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="招式指令编辑器" Width="720" Height="600" MinWidth="660" MinHeight="560"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
+        WindowStyle="None" ResizeMode="NoResize">
+  <Window.Resources>
+    <Style x:Key="ForbiddenToggle" TargetType="ToggleButton">
+      <Setter Property="Width" Value="46" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="Foreground" Value="#F2F4EF" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="Bd" Background="#25292A" BorderBrush="#444A4B" BorderThickness="1" CornerRadius="4">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock x:Name="Txt" Text="{TemplateBinding Content}" FontSize="14" FontWeight="Bold" />
+              </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="#5A2B26" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="#EF4E3E" />
+                <Setter TargetName="Txt" Property="Foreground" Value="#FF9C9C" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+  <Border BorderBrush="#484E4F" BorderThickness="1" CornerRadius="6" Background="{StaticResource PanelBrush}">
+    <Grid Margin="20">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <Grid MouseLeftButtonDown="Header_MouseLeftButtonDown" Margin="0,0,0,18">
+        <StackPanel><TextBlock Text="招式指令编辑器" FontSize="21" FontWeight="Bold" /></StackPanel>
+        <Button HorizontalAlignment="Right" Style="{StaticResource IconButton}" Click="Cancel_Click"><TextBlock Text="×" FontSize="18" /></Button>
+      </Grid>
+
+      <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+        <StackPanel Margin="0,0,7,0"><TextBlock Text="角色" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,6" /><TextBox x:Name="CharacterBox" Height="34" Padding="9,6" Background="#0E1112" Foreground="White" BorderBrush="{StaticResource LineBrush}" /></StackPanel>
+        <StackPanel Grid.Column="1" Margin="7,0,0,0"><TextBlock Text="招式名称" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,6" /><TextBox x:Name="NameBox" Height="34" Padding="9,6" Background="#0E1112" Foreground="White" BorderBrush="{StaticResource LineBrush}" /></StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="2" Margin="0,16,0,0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="指令段落" FontWeight="Bold" />
+        <TextBlock Grid.Row="1" Text="一段 = 一个动作；多段连成一套连段。在「指令」框直接输入 numpad（如 236A、623C），点已加步骤可移除。" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,4,0,8" TextWrapping="Wrap" LineHeight="16" />
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+          <StackPanel x:Name="SegmentsPanel" />
+        </ScrollViewer>
+        <Button x:Name="AddSegmentButton" Grid.Row="3" Content="＋ 添加一段" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Click="AddSegment_Click" Margin="0,6,0,0" />
+      </Grid>
+
+      <StackPanel Grid.Row="3" Margin="0,12,0,0">
+        <TextBlock Text="禁用输入（训练时按到会标红，如升龙禁「上(8)」）" FontWeight="Bold" />
+        <WrapPanel x:Name="ForbiddenPalette" Margin="0,8,0,0" />
+      </StackPanel>
+
+      <Grid Grid.Row="4" Margin="0,18,0,0">
+        <Button x:Name="DeleteButton" Content="删除招式" Style="{StaticResource TextButton}" Foreground="#FF786C" BorderBrush="#65312D" Click="Delete_Click" HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Content="取消" Style="{StaticResource TextButton}" Click="Cancel_Click" Margin="0,0,10,0" />
+          <Button Content="保存招式" Style="{StaticResource TextButton}" Background="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}" Click="Save_Click" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

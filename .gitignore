@@ -1,0 +1,35 @@
+# ===== Build outputs =====
+bin/
+obj/
+
+# ===== Publish / packaging artifacts =====
+publish/
+release/
+product/
+product-1000/
+product-continuity/
+product-mini/
+product-mini-fixed/
+product-no-white-edge/
+product-small/
+product-ui-fix/
+product-ui-fix.zip
+
+# ===== Packaging tool output =====
+tools/**/launcher.exe
+
+# ===== Visual Studio =====
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ===== OS / editor =====
+Thumbs.db
+.DS_Store
+.idea/
+*.swp
+
+# ===== Logs =====
+*.log

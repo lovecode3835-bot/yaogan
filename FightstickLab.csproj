@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>FightstickLab</AssemblyName>
+    <RootNamespace>FightstickLab</RootNamespace>
+    <ApplicationIcon />
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;publish\**;release\**;product\**;product-1000\**;product-small\**;product-mini\**;product-mini-fixed\**;product-no-white-edge\**;product-continuity\**;product-ui-fix\**;tools\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
