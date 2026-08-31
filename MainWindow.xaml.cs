@@ -398,40 +398,56 @@ namespace FightstickLab
                 _failByStep[label] = _failByStep.GetValueOrDefault(label) + 1;
             }
 
-            BuildTiming(expected);
             BuildPrecision(expected);
             BuildStats();
-            BuildTrail();
+            BuildTimeline();
 
             UpdateRecentSummary();
         }
 
-        // SF6 式并排两行输入显示：每个事件帧一格，上=方向(箭头)、下=按键(字母)，按时间对齐
-        private void BuildTrail()
+        // SF6 式两排时间轴：每帧一格，上=方向(箭头)、下=按键(字母)，按时间对齐且保留间隔
+        private void BuildTimeline()
         {
             InputFrames.Clear();
-            const int frameMs = 24;
-            const int maxFrames = 64;
+            const int frameMs = 30;     // 可调：时间单位（毫秒/帧）
+            const int maxFrames = 40;   // 可调：最大帧数
             var last = _inputBuffer.LastOrDefault(record => record.Token != InputToken.Neutral);
             if (last == null) return;
             var start = last.Time - TimeSpan.FromMilliseconds(frameMs * maxFrames);
+            var gapLimit = _currentCommand != null ? _currentCommand.MaxGapMs : 0;
 
-            var byFrame = new Dictionary<int, FrameCellView>();
+            var cells = new FrameCellView[maxFrames];
+            for (var i = 0; i < maxFrames; i++) cells[i] = new FrameCellView();
+            var minSet = int.MaxValue;
+            var maxSet = -1;
+
             foreach (var record in _inputBuffer)
             {
                 if (record.Token == InputToken.Neutral || record.Time < start) continue;
                 var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
                 if (idx < 0 || idx >= maxFrames) continue;
-                if (!byFrame.TryGetValue(idx, out var cell))
+                var cell = cells[idx];
+                if (record.Token < InputToken.LightPunch)
                 {
-                    cell = new FrameCellView();
-                    byFrame[idx] = cell;
+                    cell.Top = TokenInfo.Glyph(record.Token);
+                    cell.Changed = true;
                 }
-                if (record.Token < InputToken.LightPunch) cell.Top = TokenInfo.Glyph(record.Token);
-                else cell.Bottom += TokenInfo.Glyph(record.Token);
+                else
+                {
+                    cell.Bottom += TokenInfo.Glyph(record.Token);
+                }
+                var gap = record.DeltaMs;
+                cell.GapText = gap <= 0 ? string.Empty : gap.ToString();
+                if (gapLimit > 0)
+                {
+                    cell.Color = gap <= gapLimit ? "#2F6A48"
+                        : (gap <= gapLimit * 1.25 ? "#B98A2E" : "#8A2E2A");
+                }
+                if (idx < minSet) minSet = idx;
+                if (idx > maxSet) maxSet = idx;
             }
 
-            foreach (var pair in byFrame.OrderBy(pair => pair.Key)) InputFrames.Add(pair.Value);
+            for (var i = minSet; i <= maxSet; i++) InputFrames.Add(cells[i]);
             ScrollTimelineToEnd();
         }
 
@@ -439,30 +455,6 @@ namespace FightstickLab
         {
             if (InputFramesScroller == null) return;
             InputFramesScroller.ScrollToEnd();
-        }
-
-        private void BuildTiming(IReadOnlyList<InputToken> expected)
-        {
-            Timing.Clear();
-            var gapLimit = _currentCommand != null ? _currentCommand.MaxGapMs : 0;
-            var recent = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(10).ToList();
-            foreach (var record in recent)
-            {
-                var gap = record.DeltaMs;
-                string color = "#3A3F40";
-                if (gapLimit > 0)
-                {
-                    if (gap <= gapLimit) color = "#2F6A48";
-                    else if (gap <= gapLimit * 1.25) color = "#B98A2E";
-                    else color = "#8A2E2A";
-                }
-                Timing.Add(new TimingCellView
-                {
-                    Glyph = TokenInfo.Glyph(record.Token),
-                    GapText = gap <= 0 ? "·" : gap.ToString(),
-                    Color = color
-                });
-            }
         }
 
         private void BuildPrecision(IReadOnlyList<InputToken> expected)

@@ -323,7 +323,6 @@
                       <RowDefinition Height="Auto" />
                       <RowDefinition Height="*" />
                       <RowDefinition Height="Auto" />
-                      <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="训练反馈" FontWeight="Bold" />
                     <TextBlock x:Name="ResultText" Grid.Row="1" Text="按目标指令开始练习。" FontSize="28" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
@@ -332,10 +331,11 @@
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Border Width="26" Height="44" Margin="0,0,3,0" Background="#1C2022" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="3">
+                            <Border Width="30" Height="48" Margin="0,0,3,0" Background="#1C2022" BorderBrush="{Binding Color}" BorderThickness="1.2" CornerRadius="3">
                               <StackPanel VerticalAlignment="Center">
                                 <TextBlock x:Name="FrameTop" Text="{Binding Top}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" />
                                 <TextBlock Text="{Binding Bottom}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                <TextBlock Text="{Binding GapText}" FontFamily="Consolas" FontSize="7" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
                               </StackPanel>
                             </Border>
                             <DataTemplate.Triggers>
@@ -349,22 +349,7 @@
                     </ScrollViewer>
                     <TextBlock x:Name="PrecisionText" Grid.Row="3" Text="" Foreground="{StaticResource AccentBrush}" FontFamily="Consolas" FontSize="12" Margin="0,6,0,0" />
                     <TextBlock x:Name="AssistDiagnosisText" Grid.Row="4" Text="" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="13" LineHeight="22" Margin="0,8,0,0" />
-                    <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0">
-                      <ItemsControl ItemsSource="{Binding Timing}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Width="42" Height="40" CornerRadius="4" Margin="0,0,6,0" Background="#1C2022" BorderBrush="{Binding Color}" BorderThickness="1">
-                              <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Glyph}" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center" />
-                                <TextBlock Text="{Binding GapText}" FontFamily="Consolas" FontSize="8" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                              </StackPanel>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock x:Name="StatsText" Grid.Row="6" Text="" Foreground="{StaticResource SuccessBrush}" FontSize="11" Margin="0,12,0,0" />
+                    <TextBlock x:Name="StatsText" Grid.Row="5" Text="" Foreground="{StaticResource SuccessBrush}" FontSize="11" Margin="0,12,0,0" />
                   </Grid>
                 </Border>
               </Grid>
