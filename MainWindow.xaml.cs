@@ -59,7 +59,6 @@ namespace FightstickLab
         private DisplayMode _displayMode = DisplayMode.Full;
         private bool _loaded;
         private Rect _fullBounds;
-        private DispatcherTimer? _frameTimer;
 
         public ObservableCollection<InputRecord> History { get; } = new ObservableCollection<InputRecord>();
         public ObservableCollection<AssistTokenView> AssistProgress { get; } = new ObservableCollection<AssistTokenView>();
@@ -129,17 +128,11 @@ namespace FightstickLab
             _gamepadMonitor.StateChanged += GamepadMonitor_StateChanged;
             _gamepadMonitor.Start();
 
-            // 输入时间轴：按帧连续采样推进（SF6 式实时监视）
-            _frameTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-            _frameTimer.Tick += (s, e) => AppendInputFrame();
-            _frameTimer.Start();
-
             _loaded = true;
         }
 
         private void Window_Closed(object? sender, EventArgs e)
         {
-            _frameTimer?.Stop();
             _keyboardHook.Dispose();
             _gamepadMonitor.Dispose();
             SettingsStore.Save(_settings);
@@ -324,7 +317,6 @@ namespace FightstickLab
             if (_inputBuffer.Count > HistoryExporter.MaxExportRecords) _inputBuffer.RemoveAt(0);
             History.Insert(0, record);
             while (History.Count > 80) History.RemoveAt(History.Count - 1);
-            EmptyHistory.Visibility = Visibility.Collapsed;
             UpdateHistoryCount();
             UpdateHistoryActions();
 
@@ -378,12 +370,6 @@ namespace FightstickLab
                 AssistProgress.Add(new AssistTokenView { Token = expected[i], Status = status });
             }
 
-            var notation = _inputBuffer
-                .Where(record => record.Token != InputToken.Neutral)
-                .TakeLast(14)
-                .Select(record => TokenInfo.Notation(record.Token));
-            NotationText.Text = string.Join("  ", notation);
-
             AssistDiagnosisText.Foreground = (Brush)FindResource("MutedBrush");
             AssistDiagnosisText.Text = BuildDiagnosis(expected, analysis);
 
@@ -415,46 +401,38 @@ namespace FightstickLab
             BuildTiming(expected);
             BuildPrecision(expected);
             BuildStats();
+            BuildTrail();
 
             UpdateRecentSummary();
         }
 
-        // 按帧连续采样：方向在格子上、按下的按键在格子下，随时间轴向左流出
-        private void AppendInputFrame()
+        // SF6 式并排两行输入显示：每个事件帧一格，上=方向(箭头)、下=按键(字母)，按时间对齐
+        private void BuildTrail()
         {
-            var cell = new FrameCellView();
-            var dir = _currentDirection;
-            cell.Top = dir == InputToken.Neutral ? "·" : TokenInfo.Glyph(dir);
+            InputFrames.Clear();
+            const int frameMs = 24;
+            const int maxFrames = 64;
+            var last = _inputBuffer.LastOrDefault(record => record.Token != InputToken.Neutral);
+            if (last == null) return;
+            var start = last.Time - TimeSpan.FromMilliseconds(frameMs * maxFrames);
 
-            var buttons = string.Empty;
-            if (IsButtonDown(InputAction.LightPunch)) buttons += "A";
-            if (IsButtonDown(InputAction.LightKick)) buttons += "B";
-            if (IsButtonDown(InputAction.HeavyPunch)) buttons += "C";
-            if (IsButtonDown(InputAction.HeavyKick)) buttons += "D";
-            cell.Bottom = buttons;
-
-            // 方向变化帧做高亮提示
-            if (InputFrames.Count > 0)
+            var byFrame = new Dictionary<int, FrameCellView>();
+            foreach (var record in _inputBuffer)
             {
-                var last = InputFrames[InputFrames.Count - 1];
-                cell.Changed = last.Top != cell.Top;
+                if (record.Token == InputToken.Neutral || record.Time < start) continue;
+                var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
+                if (idx < 0 || idx >= maxFrames) continue;
+                if (!byFrame.TryGetValue(idx, out var cell))
+                {
+                    cell = new FrameCellView();
+                    byFrame[idx] = cell;
+                }
+                if (record.Token < InputToken.LightPunch) cell.Top = TokenInfo.Glyph(record.Token);
+                else cell.Bottom += TokenInfo.Glyph(record.Token);
             }
 
-            InputFrames.Add(cell);
-            while (InputFrames.Count > 128) InputFrames.RemoveAt(0);
+            foreach (var pair in byFrame.OrderBy(pair => pair.Key)) InputFrames.Add(pair.Value);
             ScrollTimelineToEnd();
-        }
-
-        private bool IsButtonDown(InputAction action)
-        {
-            if (_keyboardButtons.Contains(action)) return true;
-            switch (action)
-            {
-                case InputAction.LightPunch: return _gamepad.LightPunch;
-                case InputAction.LightKick: return _gamepad.LightKick;
-                case InputAction.HeavyPunch: return _gamepad.HeavyPunch;
-                default: return _gamepad.HeavyKick;
-            }
         }
 
         private void ScrollTimelineToEnd()
@@ -480,7 +458,7 @@ namespace FightstickLab
                 }
                 Timing.Add(new TimingCellView
                 {
-                    Glyph = TokenInfo.Notation(record.Token),
+                    Glyph = TokenInfo.Glyph(record.Token),
                     GapText = gap <= 0 ? "·" : gap.ToString(),
                     Color = color
                 });
@@ -493,8 +471,8 @@ namespace FightstickLab
             var actual = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(expected.Count).ToList();
             if (actual.Count == 0) { PrecisionText.Text = string.Empty; return; }
 
-            var targetStr = string.Concat(expected.Select(TokenInfo.Notation));
-            var actualStr = string.Concat(actual.Select(record => TokenInfo.Notation(record.Token)));
+            var targetStr = string.Concat(expected.Select(TokenInfo.Glyph));
+            var actualStr = string.Concat(actual.Select(record => TokenInfo.Glyph(record.Token)));
 
             if (actualStr == targetStr) { PrecisionText.Text = "指令干净 ✓"; return; }
 
@@ -504,7 +482,7 @@ namespace FightstickLab
                 if (actual[i].Token != expected[i]) { mismatch = i; break; }
             }
             var extras = actual.Count > expected.Count
-                ? string.Concat(actual.Skip(expected.Count).Select(record => TokenInfo.Notation(record.Token)))
+                ? string.Concat(actual.Skip(expected.Count).Select(record => TokenInfo.Glyph(record.Token)))
                 : string.Empty;
 
             var flags = string.Empty;
@@ -959,7 +937,6 @@ namespace FightstickLab
             _inputBuffer.Clear();
             _lastMatchedRecordId = 0;
             UpdateHistoryCount();
-            EmptyHistory.Visibility = Visibility.Visible;
             UpdateHistoryActions();
             ResetStats();
             UpdateAssistPanel();

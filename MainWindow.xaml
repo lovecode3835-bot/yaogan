@@ -312,7 +312,7 @@
 
             <Border Grid.Row="4" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
               <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="*" /></Grid.RowDefinitions>
 
                 <Border Padding="14,14" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="5">
                   <Grid>
@@ -327,7 +327,26 @@
                     </Grid.RowDefinitions>
                     <TextBlock Text="训练反馈" FontWeight="Bold" />
                     <TextBlock x:Name="ResultText" Grid.Row="1" Text="按目标指令开始练习。" FontSize="28" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
-                    <TextBlock x:Name="NotationText" Grid.Row="2" Text="" Foreground="{StaticResource MutedBrush}" FontFamily="Consolas" FontSize="12" Margin="0,8,0,0" />
+                    <ScrollViewer Grid.Row="2" x:Name="InputFramesScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,10,0,0" MaxHeight="48">
+                      <ItemsControl ItemsSource="{Binding InputFrames}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border Width="26" Height="44" Margin="0,0,3,0" Background="#1C2022" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="3">
+                              <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="FrameTop" Text="{Binding Top}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding Bottom}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                              </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                              <DataTrigger Binding="{Binding Changed}" Value="True">
+                                <Setter TargetName="FrameTop" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                              </DataTrigger>
+                            </DataTemplate.Triggers>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
                     <TextBlock x:Name="PrecisionText" Grid.Row="3" Text="" Foreground="{StaticResource AccentBrush}" FontFamily="Consolas" FontSize="12" Margin="0,6,0,0" />
                     <TextBlock x:Name="AssistDiagnosisText" Grid.Row="4" Text="" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="13" LineHeight="22" Margin="0,8,0,0" />
                     <ScrollViewer Grid.Row="5" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0">
@@ -346,36 +365,6 @@
                       </ItemsControl>
                     </ScrollViewer>
                     <TextBlock x:Name="StatsText" Grid.Row="6" Text="" Foreground="{StaticResource SuccessBrush}" FontSize="11" Margin="0,12,0,0" />
-                  </Grid>
-                </Border>
-
-                <Border Grid.Row="1" Margin="0,12,0,0" Padding="12,9" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="5">
-                  <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <TextBlock Text="输入时间轴（按帧对齐 · 上方向下按键）" Foreground="{StaticResource MutedBrush}" FontSize="10" />
-                    <ScrollViewer x:Name="InputFramesScroller" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
-                      <ItemsControl ItemsSource="{Binding InputFrames}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Width="14" Height="36" Margin="0,0,1,0" Background="#141718" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,1,1">
-                              <Grid>
-                                <TextBlock x:Name="FrameTop" Text="{Binding Top}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0" />
-                                <TextBlock Text="{Binding Bottom}" FontSize="8" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2" />
-                                <Rectangle x:Name="ChangeBar" Height="2" VerticalAlignment="Top" Fill="{StaticResource AccentBrush}" Visibility="Collapsed" />
-                              </Grid>
-                            </Border>
-                            <DataTemplate.Triggers>
-                              <DataTrigger Binding="{Binding Changed}" Value="True">
-                                <Setter TargetName="FrameTop" Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                <Setter TargetName="ChangeBar" Property="Visibility" Value="Visible" />
-                              </DataTrigger>
-                            </DataTemplate.Triggers>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </ScrollViewer>
-                    <TextBlock x:Name="EmptyHistory" Grid.Row="1" Text="开始输入（方向在格子上，按键在格子下）" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="11" />
                   </Grid>
                 </Border>
               </Grid>
