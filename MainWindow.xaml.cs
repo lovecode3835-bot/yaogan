@@ -369,6 +369,7 @@ namespace FightstickLab
                 var status = recentSuccess ? "Done" : i < analysis.Matched.Count ? "Done" : i == analysis.MissIndex ? "Miss" : i == analysis.Matched.Count ? "Next" : "Idle";
                 AssistProgress.Add(new AssistTokenView { Token = expected[i], Status = status });
             }
+            RenderSequenceGrid();
 
             AssistDiagnosisText.Foreground = (Brush)FindResource("MutedBrush");
             AssistDiagnosisText.Text = BuildDiagnosis(expected, analysis);
@@ -400,61 +401,62 @@ namespace FightstickLab
 
             BuildPrecision(expected);
             BuildStats();
-            BuildTimeline();
 
             UpdateRecentSummary();
         }
 
-        // SF6 式两排时间轴：每帧一格，上=方向(箭头)、下=按键(字母)，按时间对齐且保留间隔
-        private void BuildTimeline()
+        // 招式卡的序列：两排对齐（上排方向、下排按键），按步骤位置对应，命中标色
+        private void RenderSequenceGrid()
         {
-            InputFrames.Clear();
-            const int frameMs = 30;     // 可调：时间单位（毫秒/帧）
-            const int maxFrames = 40;   // 可调：最大帧数
-            var last = _inputBuffer.LastOrDefault(record => record.Token != InputToken.Neutral);
-            if (last == null) return;
-            var start = last.Time - TimeSpan.FromMilliseconds(frameMs * maxFrames);
-            var gapLimit = _currentCommand != null ? _currentCommand.MaxGapMs : 0;
+            if (SequenceGrid == null) return;
+            SequenceGrid.Children.Clear();
+            SequenceGrid.ColumnDefinitions.Clear();
+            SequenceGrid.RowDefinitions.Clear();
+            SequenceGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            SequenceGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var cells = new FrameCellView[maxFrames];
-            for (var i = 0; i < maxFrames; i++) cells[i] = new FrameCellView();
-            var minSet = int.MaxValue;
-            var maxSet = -1;
-
-            foreach (var record in _inputBuffer)
+            for (var i = 0; i < AssistProgress.Count; i++)
             {
-                if (record.Token == InputToken.Neutral || record.Time < start) continue;
-                var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
-                if (idx < 0 || idx >= maxFrames) continue;
-                var cell = cells[idx];
-                if (record.Token < InputToken.LightPunch)
-                {
-                    cell.Top = TokenInfo.Glyph(record.Token);
-                    cell.Changed = true;
-                }
-                else
-                {
-                    cell.Bottom += TokenInfo.Glyph(record.Token);
-                }
-                var gap = record.DeltaMs;
-                cell.GapText = gap <= 0 ? string.Empty : gap.ToString();
-                if (gapLimit > 0)
-                {
-                    cell.Color = gap <= gapLimit ? "#2F6A48"
-                        : (gap <= gapLimit * 1.25 ? "#B98A2E" : "#8A2E2A");
-                }
-                if (idx < minSet) minSet = idx;
-                if (idx > maxSet) maxSet = idx;
+                var view = AssistProgress[i];
+                var isDirection = view.Token < InputToken.LightPunch;
+                SequenceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var cell = BuildSeqCell(view);
+                Grid.SetColumn(cell, i);
+                Grid.SetRow(cell, isDirection ? 0 : 1);
+                SequenceGrid.Children.Add(cell);
             }
-
-            for (var i = minSet; i <= maxSet; i++) InputFrames.Add(cells[i]);
-            ScrollTimelineToEnd();
         }
 
-        private void ScrollTimelineToEnd()
+        private static Border BuildSeqCell(AssistTokenView view)
         {
-            if (InputFramesScroller == null) return;
-            InputFramesScroller.ScrollToEnd();
+            string bg, border, fg;
+            switch (view.Status)
+            {
+                case "Done": bg = "#17342B"; border = "#3F7D5B"; fg = "#7FE7A8"; break;
+                case "Next": bg = "#3A3520"; border = "#C9A23A"; fg = "#F2D98A"; break;
+                case "Miss": bg = "#3A2020"; border = "#C9463A"; fg = "#FF9C9C"; break;
+                default: bg = "#202426"; border = "#343A3B"; fg = "#DDE2DD"; break;
+            }
+            var cell = new Border
+            {
+                Width = 30,
+                Height = 30,
+                Margin = new Thickness(0, 0, 4, 0),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bg)),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(border)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4)
+            };
+            cell.Child = new TextBlock
+            {
+                Text = TokenInfo.Glyph(view.Token),
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fg)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            return cell;
         }
 
         private void BuildPrecision(IReadOnlyList<InputToken> expected)
