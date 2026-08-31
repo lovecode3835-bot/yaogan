@@ -426,7 +426,7 @@ namespace FightstickLab
         }
 
         // 指令历史：两排（上=方向，下=拳脚）。保留全部输入(≤1000)；
-        // 5 秒内的间隔按时间比例、超过 5 秒按一格算（长空档不拉宽窗口）
+        // 方向+拳脚若间隔≤snapMs 视为同时输入 → 同列；5 秒内按时间、超 5 秒按一格
         private void BuildHistory()
         {
             if (HistoryCanvas == null) return;
@@ -434,22 +434,54 @@ namespace FightstickLab
             const double pxPerMs = 0.62;         // 可调：横轴缩放（像素/毫秒）
             const int capMs = 5000;              // 间隔超过该值按一格算
             const double cellW = 34;             // "一格"宽度（含空隙）
+            const int snapMs = 100;              // 方向+拳脚在该间隔内 → 同列（同时输入）
             var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).ToList();
             if (events.Count == 0) return;
 
             double x = 4;
+            double? lastDirX = null;
+            var lastDirTime = DateTime.MinValue;
+
             foreach (var record in events)
             {
-                var gap = record.DeltaMs;
-                if (gap > capMs) x += cellW;          // 超过 5 秒 = 一格
-                else if (gap > 0) x += gap * pxPerMs; // 5 秒内按时间
                 var isDirection = record.Token < InputToken.LightPunch;
-                var y = isDirection ? 2 : 40;
-                var cell = MakeHistoryCell(record, isDirection);
-                Canvas.SetLeft(cell, x);
-                Canvas.SetTop(cell, y);
-                HistoryCanvas.Children.Add(cell);
-                x += cellW;
+                if (isDirection)
+                {
+                    // 方向：开新列
+                    var gap = record.DeltaMs;
+                    if (gap > capMs) x += cellW;
+                    else if (gap > 0) x += gap * pxPerMs;
+                    var cell = MakeHistoryCell(record, true);
+                    Canvas.SetLeft(cell, x);
+                    Canvas.SetTop(cell, 2);
+                    HistoryCanvas.Children.Add(cell);
+                    lastDirX = x;
+                    lastDirTime = record.Time;
+                    x += cellW;
+                }
+                else
+                {
+                    // 拳脚：若紧邻最近方向（同时输入）→ 与之同列
+                    var snap = lastDirX.HasValue && (record.Time - lastDirTime).TotalMilliseconds <= snapMs;
+                    if (snap)
+                    {
+                        var cell = MakeHistoryCell(record, false);
+                        Canvas.SetLeft(cell, lastDirX!.Value);
+                        Canvas.SetTop(cell, 40);
+                        HistoryCanvas.Children.Add(cell);
+                    }
+                    else
+                    {
+                        var gap = record.DeltaMs;
+                        if (gap > capMs) x += cellW;
+                        else if (gap > 0) x += gap * pxPerMs;
+                        var cell = MakeHistoryCell(record, false);
+                        Canvas.SetLeft(cell, x);
+                        Canvas.SetTop(cell, 40);
+                        HistoryCanvas.Children.Add(cell);
+                        x += cellW;
+                    }
+                }
             }
 
             HistoryCanvas.Width = x + 10;
