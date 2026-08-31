@@ -145,6 +145,13 @@ namespace FightstickLab
 
         private void HandleKeyboardChange(int virtualKey, bool isDown)
         {
+            // Ctrl+T：清空指令历史
+            if (isDown && virtualKey == 0x54 && (Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                ClearHistory();
+                return;
+            }
+
             if (_capturingBinding.HasValue && isDown)
             {
                 var action = _capturingBinding.Value;
@@ -352,13 +359,15 @@ namespace FightstickLab
 
         private void UpdateAssistPanel()
         {
-            AssistProgress.Clear();
-
-            if (_currentCommand == null || _currentCommand.Sequence.Count == 0)
+            try
             {
-                AssistDiagnosisText.Text = "先选择或新建一个练习招式。";
-                return;
-            }
+                AssistProgress.Clear();
+
+                if (_currentCommand == null || _currentCommand.Sequence.Count == 0)
+                {
+                    AssistDiagnosisText.Text = "先选择或新建一个练习招式。";
+                    return;
+                }
 
             var expected = InputMatcher.Flatten(_currentCommand.EffectiveSegments, _facingLeft);
             var analysis = AnalyzeCurrentAttempt(expected);
@@ -403,6 +412,17 @@ namespace FightstickLab
             BuildHistory();
 
             UpdateRecentSummary();
+            }
+            catch (Exception ex)
+            {
+                TryLogCrash(ex);
+            }
+        }
+
+        private void TryLogCrash(Exception ex)
+        {
+            try { File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), $"[{DateTime.Now:HH:mm:ss}] {ex}\n"); }
+            catch { }
         }
 
         // 指令历史：你实际按过的输入（方向=上排箭头，拳脚=下排字母），按时间对齐、仅显示有输入的位置
@@ -926,7 +946,9 @@ namespace FightstickLab
             UpdateRecentSummary();
         }
 
-        private void ClearHistory_Click(object sender, RoutedEventArgs e)
+        private void ClearHistory_Click(object sender, RoutedEventArgs e) => ClearHistory();
+
+        private void ClearHistory()
         {
             History.Clear();
             _inputBuffer.Clear();
