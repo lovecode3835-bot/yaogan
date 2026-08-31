@@ -430,8 +430,8 @@ namespace FightstickLab
         {
             if (HistoryCanvas == null) return;
             HistoryCanvas.Children.Clear();
-            const double pxPerMs = 0.8;          // 可调：横轴缩放（像素/毫秒）
-            const int windowMs = 2200;           // 可调：时间窗（毫秒）
+            const double pxPerMs = 0.62;         // 可调：横轴缩放（像素/毫秒）
+            const int windowMs = 2600;           // 可调：时间窗（毫秒）
             var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(60).ToList();
             if (events.Count == 0) return;
             var end = events.Last().Time;
@@ -451,7 +451,10 @@ namespace FightstickLab
                 HistoryCanvas.Children.Add(cell);
             }
 
-            HistoryScroller?.ScrollToEnd();
+            // 布局完成后滚到最右，让最近的输入可见
+            HistoryScroller?.Dispatcher.BeginInvoke(
+                new Action(() => HistoryScroller?.ScrollToEnd()),
+                System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private static Border MakeHistoryCell(InputRecord record, bool isDirection)
