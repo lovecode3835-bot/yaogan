@@ -59,6 +59,7 @@ namespace FightstickLab
         private DisplayMode _displayMode = DisplayMode.Full;
         private bool _loaded;
         private Rect _fullBounds;
+        private DispatcherTimer? _frameTimer;
 
         public ObservableCollection<InputRecord> History { get; } = new ObservableCollection<InputRecord>();
         public ObservableCollection<AssistTokenView> AssistProgress { get; } = new ObservableCollection<AssistTokenView>();
@@ -127,11 +128,18 @@ namespace FightstickLab
 
             _gamepadMonitor.StateChanged += GamepadMonitor_StateChanged;
             _gamepadMonitor.Start();
+
+            // 输入时间轴：按帧连续采样推进（SF6 式实时监视）
+            _frameTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            _frameTimer.Tick += (s, e) => AppendInputFrame();
+            _frameTimer.Start();
+
             _loaded = true;
         }
 
         private void Window_Closed(object? sender, EventArgs e)
         {
+            _frameTimer?.Stop();
             _keyboardHook.Dispose();
             _gamepadMonitor.Dispose();
             SettingsStore.Save(_settings);
@@ -407,43 +415,52 @@ namespace FightstickLab
             BuildTiming(expected);
             BuildPrecision(expected);
             BuildStats();
-            RebuildInputFrames();
 
             UpdateRecentSummary();
         }
 
-        private void RebuildInputFrames()
+        // 按帧连续采样：方向在格子上、按下的按键在格子下，随时间轴向左流出
+        private void AppendInputFrame()
         {
-            InputFrames.Clear();
-            const int frameMs = 16;
-            const int maxFrames = 128;
-            var last = _inputBuffer.LastOrDefault();
-            if (last == null) return;
-            var start = last.Time - TimeSpan.FromMilliseconds(frameMs * maxFrames);
+            var cell = new FrameCellView();
+            var dir = _currentDirection;
+            cell.Top = dir == InputToken.Neutral ? "·" : TokenInfo.Glyph(dir);
 
-            var cells = new FrameCellView[maxFrames];
-            for (var i = 0; i < maxFrames; i++) cells[i] = new FrameCellView();
+            var buttons = string.Empty;
+            if (IsButtonDown(InputAction.LightPunch)) buttons += "A";
+            if (IsButtonDown(InputAction.LightKick)) buttons += "B";
+            if (IsButtonDown(InputAction.HeavyPunch)) buttons += "C";
+            if (IsButtonDown(InputAction.HeavyKick)) buttons += "D";
+            cell.Bottom = buttons;
 
-            foreach (var record in _inputBuffer)
+            // 方向变化帧做高亮提示
+            if (InputFrames.Count > 0)
             {
-                if (record.Time < start) continue;
-                var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
-                if (idx < 0 || idx >= maxFrames) continue;
-                var cell = cells[idx];
-                if (record.Token < InputToken.LightPunch)
-                {
-                    // 方向变化帧：显示箭头（回中显示 ·）
-                    cell.Top = record.Token == InputToken.Neutral ? "·" : TokenInfo.Glyph(record.Token);
-                    cell.Changed = true;
-                }
-                else
-                {
-                    // 按键按下帧：累积该帧按下的字母
-                    cell.Bottom += TokenInfo.Glyph(record.Token);
-                }
+                var last = InputFrames[InputFrames.Count - 1];
+                cell.Changed = last.Top != cell.Top;
             }
 
-            foreach (var cell in cells) InputFrames.Add(cell);
+            InputFrames.Add(cell);
+            while (InputFrames.Count > 128) InputFrames.RemoveAt(0);
+            ScrollTimelineToEnd();
+        }
+
+        private bool IsButtonDown(InputAction action)
+        {
+            if (_keyboardButtons.Contains(action)) return true;
+            switch (action)
+            {
+                case InputAction.LightPunch: return _gamepad.LightPunch;
+                case InputAction.LightKick: return _gamepad.LightKick;
+                case InputAction.HeavyPunch: return _gamepad.HeavyPunch;
+                default: return _gamepad.HeavyKick;
+            }
+        }
+
+        private void ScrollTimelineToEnd()
+        {
+            if (InputFramesScroller == null) return;
+            InputFramesScroller.ScrollToEnd();
         }
 
         private void BuildTiming(IReadOnlyList<InputToken> expected)

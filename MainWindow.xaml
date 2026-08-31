@@ -353,17 +353,24 @@
                   <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <TextBlock Text="输入时间轴（按帧对齐 · 上方向下按键）" Foreground="{StaticResource MutedBrush}" FontSize="10" />
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                    <ScrollViewer x:Name="InputFramesScroller" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
                       <ItemsControl ItemsSource="{Binding InputFrames}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
                             <Border Width="14" Height="36" Margin="0,0,1,0" Background="#141718" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,1,1">
                               <Grid>
-                                <TextBlock Text="{Binding Top}" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                <TextBlock x:Name="FrameTop" Text="{Binding Top}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding Bottom}" FontSize="8" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2" />
+                                <Rectangle x:Name="ChangeBar" Height="2" VerticalAlignment="Top" Fill="{StaticResource AccentBrush}" Visibility="Collapsed" />
                               </Grid>
                             </Border>
+                            <DataTemplate.Triggers>
+                              <DataTrigger Binding="{Binding Changed}" Value="True">
+                                <Setter TargetName="FrameTop" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="ChangeBar" Property="Visibility" Value="Visible" />
+                              </DataTrigger>
+                            </DataTemplate.Triggers>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
