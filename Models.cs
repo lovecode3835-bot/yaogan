@@ -102,6 +102,14 @@ namespace FightstickLab
         public string Color { get; set; } = "#3A3F40";
     }
 
+    // SF6 式输入时间轴：每帧一格，上=方向、下=按键（按帧对齐，看拳脚与方向的协调）
+    public sealed class FrameCellView
+    {
+        public string Top { get; set; } = "·";        // 方向：变化帧显示箭头，其余 ·
+        public string Bottom { get; set; } = string.Empty; // 按键：该帧按下的字母
+        public bool Changed { get; set; }
+    }
+
     public sealed class AssistTokenView
     {
         public InputToken Token { get; set; }

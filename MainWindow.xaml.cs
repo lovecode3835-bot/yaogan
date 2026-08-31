@@ -64,6 +64,7 @@ namespace FightstickLab
         public ObservableCollection<AssistTokenView> AssistProgress { get; } = new ObservableCollection<AssistTokenView>();
         public ObservableCollection<AssistTokenView> AttemptTimeline { get; } = new ObservableCollection<AssistTokenView>();
         public ObservableCollection<TimingCellView> Timing { get; } = new ObservableCollection<TimingCellView>();
+        public ObservableCollection<FrameCellView> InputFrames { get; } = new ObservableCollection<FrameCellView>();
         public ObservableCollection<AttemptResultView> RecentResults { get; } = new ObservableCollection<AttemptResultView>();
 
         public MainWindow()
@@ -406,8 +407,43 @@ namespace FightstickLab
             BuildTiming(expected);
             BuildPrecision(expected);
             BuildStats();
+            RebuildInputFrames();
 
             UpdateRecentSummary();
+        }
+
+        private void RebuildInputFrames()
+        {
+            InputFrames.Clear();
+            const int frameMs = 16;
+            const int maxFrames = 128;
+            var last = _inputBuffer.LastOrDefault();
+            if (last == null) return;
+            var start = last.Time - TimeSpan.FromMilliseconds(frameMs * maxFrames);
+
+            var cells = new FrameCellView[maxFrames];
+            for (var i = 0; i < maxFrames; i++) cells[i] = new FrameCellView();
+
+            foreach (var record in _inputBuffer)
+            {
+                if (record.Time < start) continue;
+                var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
+                if (idx < 0 || idx >= maxFrames) continue;
+                var cell = cells[idx];
+                if (record.Token < InputToken.LightPunch)
+                {
+                    // 方向变化帧：显示箭头（回中显示 ·）
+                    cell.Top = record.Token == InputToken.Neutral ? "·" : TokenInfo.Glyph(record.Token);
+                    cell.Changed = true;
+                }
+                else
+                {
+                    // 按键按下帧：累积该帧按下的字母
+                    cell.Bottom += TokenInfo.Glyph(record.Token);
+                }
+            }
+
+            foreach (var cell in cells) InputFrames.Add(cell);
         }
 
         private void BuildTiming(IReadOnlyList<InputToken> expected)
