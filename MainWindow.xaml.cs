@@ -425,32 +425,71 @@ namespace FightstickLab
             catch { }
         }
 
-        // 指令历史：你实际按过的输入（方向=上排箭头，拳脚=下排字母），按时间对齐、仅显示有输入的位置
+        // 指令历史：两排（上=方向，下=拳脚），每个输入按它的真实时间坐标定位，间隔留空
         private void BuildHistory()
         {
-            InputFrames.Clear();
-            const int frameMs = 24;                 // 可调：时间单位（毫秒/格）
-            var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(40).ToList();
+            if (HistoryCanvas == null) return;
+            HistoryCanvas.Children.Clear();
+            const double pxPerMs = 0.8;          // 可调：横轴缩放（像素/毫秒）
+            const int windowMs = 2200;           // 可调：时间窗（毫秒）
+            var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(60).ToList();
             if (events.Count == 0) return;
             var end = events.Last().Time;
-            var start = end - TimeSpan.FromMilliseconds(frameMs * 40);
+            var start = end.AddMilliseconds(-windowMs);   // 窗口左端
+            var span = (end - start).TotalMilliseconds;
+            HistoryCanvas.Width = Math.Max(60, span * pxPerMs + 40);
 
-            var byFrame = new Dictionary<int, FrameCellView>();
             foreach (var record in events)
             {
                 if (record.Time < start) continue;
-                var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
-                if (idx < 0) continue;
-                if (!byFrame.TryGetValue(idx, out var cell))
-                {
-                    cell = new FrameCellView();
-                    byFrame[idx] = cell;
-                }
-                if (record.Token < InputToken.LightPunch) cell.Top = TokenInfo.Glyph(record.Token);
-                else cell.Bottom += TokenInfo.Glyph(record.Token);
-                cell.GapText = record.DeltaMs <= 0 ? string.Empty : record.DeltaMs.ToString();
+                var x = (record.Time - start).TotalMilliseconds * pxPerMs;
+                var isDirection = record.Token < InputToken.LightPunch;
+                var y = isDirection ? 2 : 40;
+                var cell = MakeHistoryCell(record, isDirection);
+                Canvas.SetLeft(cell, x);
+                Canvas.SetTop(cell, y);
+                HistoryCanvas.Children.Add(cell);
             }
-            foreach (var pair in byFrame.OrderBy(pair => pair.Key)) InputFrames.Add(pair.Value);
+
+            HistoryScroller?.ScrollToEnd();
+        }
+
+        private static Border MakeHistoryCell(InputRecord record, bool isDirection)
+        {
+            var glyph = TokenInfo.Glyph(record.Token);
+            var cell = new Border
+            {
+                Width = 28,
+                Height = 32,
+                Background = new SolidColorBrush(Color.FromRgb(0x1C, 0x20, 0x22)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x3F, 0x40)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            stack.Children.Add(new TextBlock
+            {
+                Text = glyph,
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
+                Foreground = isDirection ? new SolidColorBrush(Color.FromRgb(0xF2, 0xF4, 0xEF)) : new SolidColorBrush(Color.FromRgb(0xF2, 0x55, 0x3F)),
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            if (record.DeltaMs > 0)
+            {
+                stack.Children.Add(new TextBlock
+                {
+                    Text = record.DeltaMs.ToString(),
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 7,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x93, 0x9B, 0x97)),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 1, 0, 0)
+                });
+            }
+            cell.Child = stack;
+            return cell;
         }
 
         // 招式卡的序列：两排对齐（上排方向、下排按键），按步骤位置对应，命中标色
