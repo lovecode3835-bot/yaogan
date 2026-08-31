@@ -425,31 +425,34 @@ namespace FightstickLab
             catch { }
         }
 
-        // 指令历史：两排（上=方向，下=拳脚），每个输入按它的真实时间坐标定位，间隔留空
+        // 指令历史：两排（上=方向，下=拳脚）。保留全部输入(≤1000)；
+        // 5 秒内的间隔按时间比例、超过 5 秒按一格算（长空档不拉宽窗口）
         private void BuildHistory()
         {
             if (HistoryCanvas == null) return;
             HistoryCanvas.Children.Clear();
             const double pxPerMs = 0.62;         // 可调：横轴缩放（像素/毫秒）
-            const int windowMs = 2600;           // 可调：时间窗（毫秒）
-            var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(60).ToList();
+            const int capMs = 5000;              // 间隔超过该值按一格算
+            const double cellW = 34;             // "一格"宽度（含空隙）
+            var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).ToList();
             if (events.Count == 0) return;
-            var end = events.Last().Time;
-            var start = end.AddMilliseconds(-windowMs);   // 窗口左端
-            var span = (end - start).TotalMilliseconds;
-            HistoryCanvas.Width = Math.Max(60, span * pxPerMs + 40);
 
+            double x = 4;
             foreach (var record in events)
             {
-                if (record.Time < start) continue;
-                var x = (record.Time - start).TotalMilliseconds * pxPerMs;
+                var gap = record.DeltaMs;
+                if (gap > capMs) x += cellW;          // 超过 5 秒 = 一格
+                else if (gap > 0) x += gap * pxPerMs; // 5 秒内按时间
                 var isDirection = record.Token < InputToken.LightPunch;
                 var y = isDirection ? 2 : 40;
                 var cell = MakeHistoryCell(record, isDirection);
                 Canvas.SetLeft(cell, x);
                 Canvas.SetTop(cell, y);
                 HistoryCanvas.Children.Add(cell);
+                x += cellW;
             }
+
+            HistoryCanvas.Width = x + 10;
 
             // 布局完成后滚到最右，让最近的输入可见
             HistoryScroller?.Dispatcher.BeginInvoke(
