@@ -399,10 +399,38 @@ namespace FightstickLab
                 _failByStep[label] = _failByStep.GetValueOrDefault(label) + 1;
             }
 
-            BuildPrecision(expected);
             BuildStats();
+            BuildHistory();
 
             UpdateRecentSummary();
+        }
+
+        // 指令历史：你实际按过的输入（方向=上排箭头，拳脚=下排字母），按时间对齐、仅显示有输入的位置
+        private void BuildHistory()
+        {
+            InputFrames.Clear();
+            const int frameMs = 24;                 // 可调：时间单位（毫秒/格）
+            var events = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(40).ToList();
+            if (events.Count == 0) return;
+            var end = events.Last().Time;
+            var start = end - TimeSpan.FromMilliseconds(frameMs * 40);
+
+            var byFrame = new Dictionary<int, FrameCellView>();
+            foreach (var record in events)
+            {
+                if (record.Time < start) continue;
+                var idx = (int)((record.Time - start).TotalMilliseconds / frameMs);
+                if (idx < 0) continue;
+                if (!byFrame.TryGetValue(idx, out var cell))
+                {
+                    cell = new FrameCellView();
+                    byFrame[idx] = cell;
+                }
+                if (record.Token < InputToken.LightPunch) cell.Top = TokenInfo.Glyph(record.Token);
+                else cell.Bottom += TokenInfo.Glyph(record.Token);
+                cell.GapText = record.DeltaMs <= 0 ? string.Empty : record.DeltaMs.ToString();
+            }
+            foreach (var pair in byFrame.OrderBy(pair => pair.Key)) InputFrames.Add(pair.Value);
         }
 
         // 招式卡的序列：两排对齐（上排方向、下排按键），按步骤位置对应，命中标色
@@ -457,33 +485,6 @@ namespace FightstickLab
                 VerticalAlignment = VerticalAlignment.Center
             };
             return cell;
-        }
-
-        private void BuildPrecision(IReadOnlyList<InputToken> expected)
-        {
-            if (expected.Count == 0) { PrecisionText.Text = string.Empty; return; }
-            var actual = _inputBuffer.Where(record => record.Token != InputToken.Neutral).TakeLast(expected.Count).ToList();
-            if (actual.Count == 0) { PrecisionText.Text = string.Empty; return; }
-
-            var targetStr = string.Concat(expected.Select(TokenInfo.Glyph));
-            var actualStr = string.Concat(actual.Select(record => TokenInfo.Glyph(record.Token)));
-
-            if (actualStr == targetStr) { PrecisionText.Text = "指令干净 ✓"; return; }
-
-            var mismatch = -1;
-            for (var i = 0; i < Math.Min(expected.Count, actual.Count); i++)
-            {
-                if (actual[i].Token != expected[i]) { mismatch = i; break; }
-            }
-            var extras = actual.Count > expected.Count
-                ? string.Concat(actual.Skip(expected.Count).Select(record => TokenInfo.Glyph(record.Token)))
-                : string.Empty;
-
-            var flags = string.Empty;
-            if (mismatch >= 0) flags += $"　@{mismatch + 1} 错";
-            if (!string.IsNullOrEmpty(extras)) flags += $"　混入 {extras}";
-            if (actual.Count < expected.Count) flags += "　缺尾";
-            PrecisionText.Text = $"目标 {targetStr} → 实际 {actualStr}" + flags;
         }
 
         private void BuildStats()
